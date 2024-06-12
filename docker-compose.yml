@@ -15,6 +15,17 @@ services:
       - 8000:8000
     networks:
      - web
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`avva.itatmisis.ru`) && PathPrefix(`/api/`)
+      - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api/
+      - traefik.http.middlewares.api-strip.stripprefix.forceslash=false
+      - traefik.http.routers.api.middlewares=api-strip
+      - traefik.http.routers.api.entrypoints=websecure, web
+      - traefik.http.routers.api.tls=true
+      - traefik.http.routers.api.tls.certresolver=le
+      - traefik.http.services.api.loadbalancer.server.port=8000
+      - traefik.docker.network=web
 
   traefik:
     container_name: traefik
@@ -53,4 +64,4 @@ volumes:
 networks:
   web:
     name: web
-    external: true
+    # external: true
