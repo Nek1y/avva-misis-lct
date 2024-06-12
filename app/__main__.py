@@ -17,7 +17,7 @@ async def lifespan(app: FastAPI):
     db_create()
     yield
 
-app: FastAPI = FastAPI(lifespan=lifespan)
+app: FastAPI = FastAPI(lifespan=lifespan, root_path='/api')
 
 origins = [
     'http://localhost',
