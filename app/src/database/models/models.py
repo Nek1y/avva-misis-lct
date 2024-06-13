@@ -23,13 +23,14 @@ class User(Base):
     password: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    plants: Mapped['Plants'] = relationship(back_populates='user')
+    plant: Mapped['Plants'] = relationship(back_populates='user')
 
 
 class Plants(Base):
     __tablename__ = 'plants'
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('user.id'))
 
     name: Mapped[str]
     plant_type: Mapped[str]
