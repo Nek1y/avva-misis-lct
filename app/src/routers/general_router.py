@@ -19,7 +19,7 @@ IDList = Annotated[list[int], Query()]
 
 
 @general_router.get('/test')
-async def route_get_plant_list():
+async def route_test_healthcheck():
     return {'message': 'Тест пройден успешно!'}
 
 
