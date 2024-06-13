@@ -23,7 +23,7 @@ class User(Base):
     password: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
 
-    plant: Mapped['Plants'] = relationship(back_populates='user')
+    plants: Mapped['Plants'] = relationship(back_populates='user')
 
 
 class Plants(Base):
