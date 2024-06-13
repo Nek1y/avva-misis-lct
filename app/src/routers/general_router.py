@@ -32,7 +32,7 @@ async def route_get_plant_list(current_user: CurrentUser, session: Session, id_l
 
 @general_router.post('/plant', response_model=list[GeneralPlantGet])
 async def route_create_plant(plant_data_list: list[GeneralPlantCreate], current_user: CurrentUser, session: Session):
-    new_plant = await create_plant(session, plant_data_list)
+    new_plant = await create_plant(session, current_user.id, plant_data_list)
     return new_plant
 
 

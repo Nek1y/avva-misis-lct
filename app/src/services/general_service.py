@@ -14,8 +14,8 @@ async def get_plant_list(session: AsyncSession, id_list: list[int] | None = None
     return plant_list
 
 
-async def create_plant(session: AsyncSession, plant_data_list: list[GeneralPlantCreate]):
-    new_plant = await db.create_plant(session, plant_data_list)
+async def create_plant(session: AsyncSession, user_id: int, plant_data_list: list[GeneralPlantCreate]):
+    new_plant = await db.create_plant(session, user_id, plant_data_list)
     return new_plant
 
 

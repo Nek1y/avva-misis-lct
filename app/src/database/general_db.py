@@ -138,21 +138,22 @@ async def check_id_set_by_model(session: AsyncSession, table_obj: Base, check_id
 
 ### SPECIFIC DB PROC
 async def get_plant_list(session: AsyncSession, id_list: list[int] | None = None):
-    expr = select(Plants, Plants)
+    expr = select(Plants)
 
     if id_list:
         expr = expr.where(Plants.id.in_(id_list))
 
     plants_list = await session.execute(expr)
+    plants_list = plants_list.scalars().all()
     plants_list = [schema.GeneralPlantGet.model_validate(plant, from_attributes=True) for plant in plants_list]
 
     return plants_list
 
 
-async def create_plant(session: AsyncSession, plant_data_list: list[schema.GeneralPlantCreate]):
+async def create_plant(session: AsyncSession, user_id: int, plant_data_list: list[schema.GeneralPlantCreate]):
     new_plant_list = []
     for sub_data in plant_data_list:
-        plant = Plants(**sub_data.model_dump())
+        plant = Plants(user_id=user_id, **sub_data.model_dump())
         session.add(plant)
         await session.flush()
         new_plant_list.append(plant)
