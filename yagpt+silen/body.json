@@ -1,0 +1,19 @@
+
+{
+  "modelUri": "gpt://b1gvmt1gifb7ug7h620q/yandexgpt-lite/latest",
+  "completionOptions": {
+    "stream": false,
+    "temperature": 0.6,
+    "maxTokens": "8000"
+  },
+  "messages": [
+    {
+      "role": "system",
+      "text": "Из текста выдели информацию в виде даты и процентов прибыли. Отдай ответ в формате json"
+    },
+    {
+      "role": "user",
+      "text":
+    }
+  ]
+}
