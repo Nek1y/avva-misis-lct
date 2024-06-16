@@ -1,10 +1,12 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+import requests
 
 import src.database.general_db as db
 import src.database.models.models as models
 from src.services.api.general_api import *
 from src.schemas.general_schemas import *
+from src.services.gpt import yagpt_answer, generate_by_theme
 
 
 async def create_report(session: AsyncSession, user_id: int, report_data: ReportCreate):
@@ -30,6 +32,10 @@ async def update_report_by_id(session: AsyncSession, user_id: int, report_id: in
 # TODO извлечь данные из шаблона, засунуть в алгоритм поиска инфы и сохранить в поля json_data внутри блоков
 async def generate_doc(session: AsyncSession, user_id: int, report_id: int):
     report_data = await get_report_by_id(session, user_id, report_id, ReportType.template)
+
+    theme = report_data.report_settings.full_theme
+    res = generate_by_theme(theme)
+
     new_blocks = []
     for block in report_data.blocks:
         new_block = block.model_copy()
