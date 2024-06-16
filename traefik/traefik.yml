@@ -1,0 +1,36 @@
+entryPoints:
+  web:
+    address: :80
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: :443
+
+accessLog: {}
+
+errorLog: {}
+
+api:
+  dashboard: true
+  insecure: true
+
+certificatesResolvers:
+  le:
+    acme:
+      email: admin@123581321.ru
+      storage: /letsencrypt/acme.json
+      httpChallenge:
+        entryPoint: web
+
+providers:
+  docker:
+    endpoint: unix:///var/run/docker.sock
+    exposedByDefault: false
+    network: web
+  file:
+    filename: ./traefik.yml
+    watch: true
+  providersThrottleDuration: 10s

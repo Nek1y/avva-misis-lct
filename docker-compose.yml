@@ -1,0 +1,67 @@
+version: '3.9'
+
+services:
+  app:
+    container_name: app
+    restart: always
+    command: python3 __main__.py
+    env_file: .env
+    build:
+      context: ./app
+      dockerfile: app.dockerfile
+    depends_on:
+      - db
+    ports:
+      - 8000:8000
+    networks:
+     - web
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`avva.itatmisis.ru`) && PathPrefix(`/api/`)
+      - traefik.http.middlewares.api-strip.stripprefix.prefixes=/api/
+      - traefik.http.middlewares.api-strip.stripprefix.forceslash=false
+      - traefik.http.routers.api.middlewares=api-strip
+      - traefik.http.routers.api.entrypoints=websecure, web
+      - traefik.http.routers.api.tls=true
+      - traefik.http.routers.api.tls.certresolver=le
+      - traefik.http.services.api.loadbalancer.server.port=8000
+      - traefik.docker.network=web
+
+  traefik:
+    container_name: traefik
+    image: traefik:v2.11
+    restart: always
+    depends_on:
+      - app
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+     - /var/run/docker.sock:/var/run/docker.sock
+     - letsencrypt:/letsencrypt
+     - ./traefik/traefik.yml:/etc/traefik/traefik.yml
+     - ./traefik/logs.log:/logs.log
+    networks:
+     - web
+    # extra_hosts:
+    #  - "host.docker.internal:host-gateway"
+
+  db:
+    container_name: db
+    image: postgres:latest
+    env_file: db.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    networks:
+     - web
+
+volumes:
+  letsencrypt:
+  db-data:
+
+networks:
+  web:
+    name: web
+    # external: true
