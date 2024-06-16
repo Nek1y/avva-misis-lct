@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import delete, func, or_, select, update
-from sqlalchemy.orm import selectinload
+# from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload, joinedload
 from pydantic import BaseModel
 from fastapi import HTTPException, status
 
@@ -136,57 +137,165 @@ async def check_id_set_by_model(session: AsyncSession, table_obj: Base, check_id
             detail=f'{table_obj.__table__.name}.id in {exclude_product_id} does not exist'
         )
 
-### SPECIFIC DB PROC
-async def get_plant_list(session: AsyncSession, id_list: list[int] | None = None):
-    expr = select(Plants)
 
-    if id_list:
-        expr = expr.where(Plants.id.in_(id_list))
+# Report
+async def create_report(session: AsyncSession, user_id: int, report_data: schema.ReportCreate):
+    new_report = Report(
+        name=report_data.name,
+        report_type=report_data.report_type,
+        create_date=report_data.create_date,
+        user_id=user_id
+    )
 
-    plants_list = await session.execute(expr)
-    plants_list = plants_list.scalars().all()
-    plants_list = [schema.GeneralPlantGet.model_validate(plant, from_attributes=True) for plant in plants_list]
+    session.add(new_report)
+    await session.flush()
 
-    return plants_list
+    for block_data in report_data.blocks:
+        new_block = Block(report_id=new_report.id, **block_data.model_dump())
+        session.add(new_block)
+
+    for link_data in report_data.links:
+        new_link = Link(report_id=new_report.id, **link_data.model_dump())
+        session.add(new_link)
+
+    new_setting = ReportSetting(report_id=new_report.id, **report_data.report_settings.model_dump())
+    session.add(new_setting)
+    await session.commit()
+
+    await session.refresh(new_report)
+    result = await session.execute(
+        select(Report)
+        .options(
+            selectinload(Report.blocks),
+            selectinload(Report.links),
+            selectinload(Report.report_settings)
+        )
+        .filter(Report.id == new_report.id)
+    )
+
+    result = result.scalar_one_or_none()
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Ошибка при создании отчета: {report_data}'
+        )
+
+    return schema.ReportRead.model_validate(result, from_attributes=True)
 
 
-async def create_plant(session: AsyncSession, user_id: int, plant_data_list: list[schema.GeneralPlantCreate]):
-    new_plant_list = []
-    for sub_data in plant_data_list:
-        plant = Plants(user_id=user_id, **sub_data.model_dump())
-        session.add(plant)
-        await session.flush()
-        new_plant_list.append(plant)
+async def get_all_reports_by_type(session: AsyncSession, user_id: int, report_type: schema.ReportType):
+    result = await session.execute(
+        select(
+            Report
+        ).options(
+            selectinload(Report.blocks),
+            selectinload(Report.links),
+            selectinload(Report.report_settings)
+        ).filter(
+            Report.user_id == user_id,
+            Report.report_type == report_type
+        )
+    )
+    report_list = result.scalars().all()
+    report_list = [schema.ReportRead.model_validate(report, from_attributes=True) for report in report_list]
+    return report_list
+
+
+async def get_report_by_id(session: AsyncSession, user_id: int, report_id: int, report_type: schema.ReportType):
+    result = await session.execute(
+        select(
+            Report
+        ).options(
+            selectinload(Report.blocks),
+            selectinload(Report.links),
+            selectinload(Report.report_settings)
+        ).filter(
+            Report.id == report_id,
+            Report.user_id == user_id,
+            Report.report_type == report_type
+        )
+    )
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'report_id = {report_id} by user_id = {user_id} does not exist'
+        )
+
+    return schema.ReportRead.model_validate(report, from_attributes=True)
+
+
+async def update_report(session: AsyncSession, user_id: int, report_id: int, report_data: schema.ReportUpdate):
+    result = await session.execute(
+        select(
+            Report
+        ).options(
+            selectinload(Report.blocks),
+            selectinload(Report.links),
+            selectinload(Report.report_settings)
+        ).filter(
+            Report.id == report_id,
+            Report.user_id == user_id
+        )
+    )
+    report = result.scalar_one_or_none()
+
+    if not report:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f'Отчет с report_id = {report_id} от пользователя с user_id = {user_id} не существует'
+        )
+
+    report.name = report_data.name
+    report.report_type = report_data.report_type
+    report.create_date = report_data.create_date
+
+    if report_data.blocks is not None:
+        existing_block_ids = {block.id for block in report.blocks}
+        new_block_ids = {block.id for block in report_data.blocks}
+
+        # Удаление блоков, отсутствующих в new_block_ids
+        for block in report.blocks:
+            if block.id not in new_block_ids:
+                await session.delete(block)
+
+        for block_data in report_data.blocks:
+            if block_data.id in existing_block_ids:
+                block = next((b for b in report.blocks if b.id == block_data.id), None)
+                if block:
+                    for key, value in block_data.dict().items():
+                        setattr(block, key, value)
+            else:
+                new_block = Block(report_id=report.id, **block_data.dict())
+                session.add(new_block)
+
+    if report_data.links is not None:
+        existing_link_ids = {link.id for link in report.links}
+        new_link_ids = {link.id for link in report_data.links}
+
+        # Удаление ссылок, отсутствующих в new_link_ids
+        for link in report.links:
+            if link.id not in new_link_ids:
+                await session.delete(link)
+
+        for link_data in report_data.links:
+            if link_data.id in existing_link_ids:
+                link = next((l for l in report.links if l.id == link_data.id), None)
+                if link:
+                    for key, value in link_data.dict().items():
+                        setattr(link, key, value)
+            else:
+                new_link = Link(report_id=report.id, **link_data.dict())
+                session.add(new_link)
+
+    if report.report_settings:
+        for key, value in report_data.report_settings.dict().items():
+            setattr(report.report_settings, key, value)
+    else:
+        new_setting = ReportSetting(report_id=report.id, **report_data.report_settings.dict())
+        session.add(new_setting)
 
     await session.commit()
-    new_plant_list = [schema.GeneralPlantGet.model_validate(plant, from_attributes=True) for plant in new_plant_list]
 
-    return new_plant_list
-
-
-async def get_plant_by_id(session: AsyncSession, plant_id: int):
-    plant = await session.execute(
-        select(
-            Plants
-        ).where(
-            Plants.id == plant_id
-        )
-    )
-    plant = plant.scalar_one_or_none()
-    plant = schema.GeneralPlantGet.model_validate(plant, from_attributes=True)
-    return plant
-
-
-async def update_plant_by_id(session: AsyncSession, plant_id: int, plant_data: schema.GeneralPlantCreate):
-    await check_id_by_model(session, Plants, plant_id)
-
-    plant = await session.execute(
-        select(
-            Plants
-        ).where(
-            Plants.id == plant_id
-        )
-    )
-
-    plant = plant.scalar_one_or_none()
-    await plant.update(**plant_data.model_dump())
+    return schema.ReportRead.model_validate(report, from_attributes=True)

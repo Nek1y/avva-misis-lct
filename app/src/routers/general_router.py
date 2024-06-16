@@ -23,29 +23,46 @@ async def route_test_healthcheck():
     return {'message': 'Тест пройден успешно!'}
 
 
-# PLANTS
-@general_router.get('/plant', response_model=list[GeneralPlantGet])
-async def route_get_plant_list(current_user: CurrentUser, session: Session, id_list: IDList = None):
-    plant_list = await get_plant_list(session, id_list)
-    return plant_list
+# REPORT
+@general_router.post('/report', response_model=ReportRead)
+async def route_create_report(report_data: ReportCreate, current_user: CurrentUser, session: Session):
+    report_data = await create_report(session, current_user.id, report_data)
+    return report_data
 
 
-@general_router.post('/plant', response_model=list[GeneralPlantGet])
-async def route_create_plant(plant_data_list: list[GeneralPlantCreate], current_user: CurrentUser, session: Session):
-    new_plant = await create_plant(session, current_user.id, plant_data_list)
-    return new_plant
+@general_router.get('/report', response_model=list[ReportRead])
+async def route_get_all_report(current_user: CurrentUser, session: Session):
+    report_list = await get_all_report_by_type(session, current_user.id, report_type=ReportType.template)
+    return report_list
 
 
-@general_router.get('/plant/{plant_id}', response_model=GeneralPlantGet)
-async def route_get_plant_by_id(plant_id: int, current_user: CurrentUser, session: Session):
-    plant = await get_plant_by_id(session, plant_id)
-    return plant
+@general_router.get('/report/{report_id}', response_model=ReportRead)
+async def route_get_report_by_id(report_id: int, current_user: CurrentUser, session: Session):
+    report_data = await get_report_by_id(session, current_user.id, report_id, report_type=ReportType.template)
+    return report_data
 
 
-@general_router.patch('/plant/{plant_id}')
-async def route_update_plant_by_id(plant_id: int, plant_data: GeneralPlantCreate, current_user: CurrentUser, session: Session):
-    await update_plant_by_id(session, plant_id, plant_data)
-    data = {
-        'message': 'successful'
-    }
-    return data
+@general_router.patch('/report/{report_id}', response_model=ReportRead)
+async def route_update_report_by_id(report_id: int, report_data: ReportUpdate, current_user: CurrentUser, session: Session):
+    report_data = await update_report_by_id(session, current_user.id, report_id, report_data)
+    return report_data
+
+
+@general_router.get('/report/{report_id}/generate', response_model=ReportRead)
+async def route_generate_doc(report_id: int, current_user: CurrentUser, session: Session):
+    report_data = await generate_doc(session, current_user.id, report_id)
+    return report_data
+
+
+# DOC
+@general_router.get('/doc', response_model=list[ReportRead])
+async def route_get_all_doc(current_user: CurrentUser, session: Session):
+    report_list = await get_all_report_by_type(session, current_user.id, report_type=ReportType.doc)
+    return report_list
+
+
+@general_router.get('/doc/{doc_id}', response_model=ReportRead)
+async def route_get_doc_by_id(doc_id: int, current_user: CurrentUser, session: Session):
+    report_data = await get_report_by_id(session, current_user.id, doc_id, report_type=ReportType.doc)
+    return report_data
+

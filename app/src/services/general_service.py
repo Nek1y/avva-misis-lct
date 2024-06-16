@@ -1,5 +1,3 @@
-import random
-
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,20 +7,44 @@ from src.services.api.general_api import *
 from src.schemas.general_schemas import *
 
 
-async def get_plant_list(session: AsyncSession, id_list: list[int] | None = None):
-    plant_list = await db.get_plant_list(session, id_list)
-    return plant_list
+async def create_report(session: AsyncSession, user_id: int, report_data: ReportCreate):
+    report_data = await db.create_report(session, user_id, report_data)
+    return report_data
 
 
-async def create_plant(session: AsyncSession, user_id: int, plant_data_list: list[GeneralPlantCreate]):
-    new_plant = await db.create_plant(session, user_id, plant_data_list)
-    return new_plant
+async def get_all_report_by_type(session: AsyncSession, user_id: int, report_type: ReportType):
+    report_list = await db.get_all_reports_by_type(session, user_id, report_type)
+    return report_list
 
 
-async def get_plant_by_id(session: AsyncSession, plant_id: int):
-    plant = await db.get_plant_by_id(session, plant_id)
-    return plant
+async def get_report_by_id(session: AsyncSession, user_id: int, report_id: int, report_type: ReportType):
+    report_data = await db.get_report_by_id(session, user_id, report_id, report_type)
+    return report_data
 
 
-async def update_plant_by_id(session: AsyncSession, plant_id: int, plant_data: GeneralPlantCreate):
-    await db.update_plant_by_id(session, plant_id, plant_data)
+async def update_report_by_id(session: AsyncSession, user_id: int, report_id: int, report_data: ReportUpdate):
+    report_data = await db.update_report(session, user_id, report_id, report_data)
+    return report_data
+
+
+# TODO извлечь данные из шаблона, засунуть в алгоритм поиска инфы и сохранить в поля json_data внутри блоков
+async def generate_doc(session: AsyncSession, user_id: int, report_id: int):
+    report_data = await get_report_by_id(session, user_id, report_id, ReportType.template)
+    new_blocks = []
+    for block in report_data.blocks:
+        new_block = block.model_copy()
+        new_block.json_data = await proc_block_params(block)
+        new_blocks.append(new_block)
+
+    report_new_data = report_data.model_copy()
+    report_new_data.blocks = new_blocks
+
+    result = await create_report(session, user_id, report_new_data)
+    return result
+
+# TODO Вот тут передаем данные с блока, получаем итоговый результат
+# Плюс надо расписать обрашение к апишке
+async def proc_block_params(block_data: BlockRead):
+    print('Идет запрос к ML')
+    json_data = {}
+    return json_data
