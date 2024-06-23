@@ -45,7 +45,7 @@ async def generate_by_theme(theme: str):
 
 
 def yagpt_answer(promt: str):
-    api_key = 'AQVN0BJLYC-OPWsk4K3iINf0kj1OfTT20Jg_8ckB'
+    api_key = 'AQVNwlwccMNXWq6ugih7-fjIKGtH3tTtf2zmAL2b'
     url = 'https://llm.api.cloud.yandex.net/foundationModels/v1/completion'
     folder_id = 'b1gvmt1gifb7ug7h620q'
 

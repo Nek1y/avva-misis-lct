@@ -55,6 +55,12 @@ async def route_generate_doc(report_id: int, current_user: CurrentUser, session:
 
 
 # DOC
+@general_router.post('/doc', response_model=list[ReportRead])
+async def route_save_doct(report_data: ReportCreate, current_user: CurrentUser, session: Session):
+    report_list = await save_doc(session, current_user.id, report_data)
+    return report_list
+
+
 @general_router.get('/doc', response_model=list[ReportRead])
 async def route_get_all_doc(current_user: CurrentUser, session: Session):
     report_list = await get_all_report_by_type(session, current_user.id, report_type=ReportType.doc)
