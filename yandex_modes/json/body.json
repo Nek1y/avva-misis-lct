@@ -1,0 +1,14 @@
+{
+    "modelUri": "gpt://b1gvmt1gifb7ug7h620q/yandexgpt-lite/latest",
+    "completionOptions": {
+        "stream": false,
+        "temperature": 0.6,
+        "maxTokens": "8000"
+    },
+    "messages": [
+        {
+            "role": "system",
+            "text": "Выведи json для создания графиков"
+        }
+    ]
+}
