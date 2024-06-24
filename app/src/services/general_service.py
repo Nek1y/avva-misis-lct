@@ -1,12 +1,14 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 import requests
+import json
 
 import src.database.general_db as db
 import src.database.models.models as models
 from src.services.api.general_api import *
 from src.schemas.general_schemas import *
 from src.services.gpt import yagpt_answer, generate_by_theme
+from src.services.final_ML.classes import YaGPT
 
 
 async def create_report(session: AsyncSession, user_id: int, report_data: ReportCreate):
@@ -59,10 +61,33 @@ async def generate_doc(session: AsyncSession, user_id: int, report_id: int):
     result = report_new_data
     return result
 
-# TODO Вот тут передаем данные с блока, получаем итоговый результат
-# Плюс надо расписать обрашение к апишке
-async def proc_block_params(settings_data: ReportSettingRead, block_data: BlockRead, links: LinkRead | None = None):
-    print('Идет запрос к ML')
-    json_data = {}
-    return json_data
 
+async def proc_block_params(settings_data: ReportSettingRead, block_data: BlockRead, links: LinkRead | None = None):
+    folder_id = 'b1gvmt1gifb7ug7h620q'
+    api_key_search_api = 'AQVN2qWGvXFbx_lvCbG8mc5-olMsTq5xC-53To-N'
+    search_api_url = f"https://ya.ru/search/xml/generative?folderid={folder_id}"
+    api_key_yagpt = 'AQVNwlwccMNXWq6ugih7-fjIKGtH3tTtf2zmAL2b'
+
+    headers = {"Authorization": f"Api-Key {api_key_search_api}"}
+    headers_yagpt = {"Authorization": f"Api-Key {api_key_yagpt}"}
+
+    llm_model = settings_data.llm_model
+    search_theme = settings_data.full_theme
+    user_theme = settings_data.theme
+    links = links
+    block_type = block_data.block_type
+    axis_x = block_data.axis_x
+    axis_y = block_data.axis_y
+
+    ya = YaGPT(
+        headers_yagpt=headers_yagpt,
+        theme=user_theme,
+        full_theme=search_theme,
+        links=links,
+        block_type=block_type,
+        axis_x=axis_x,
+        axis_y=axis_y
+    )
+
+    new_json_data = ya.search_api(search_api_url, headers)
+    return new_json_data
