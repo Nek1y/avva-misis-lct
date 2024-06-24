@@ -16,6 +16,18 @@ class UserUpdate(BaseModel):
     password: str | None
 
 
+class UserDataOut(BaseModel):
+    id: int
+    first_name: str | None
+    last_name: str | None
+    login: str | None
+    password: str | None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class UserOut(BaseModel):
     id: int
     login: str
