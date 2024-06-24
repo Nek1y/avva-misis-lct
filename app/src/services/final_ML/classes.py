@@ -188,9 +188,10 @@ class YaGPT:
         return self.result_json
 
     def generate_prompt(self, prompt):
-        addition2promt = f'Название оси Х -  {self.axis_x}, Название оси Y - {self.axis_y}. '
+        addition2promt = f'Составь {self.theme} по теме {self.full_theme}. Название оси Х - {self.axis_x}, Название оси Y - {self.axis_y}.'
         prompt = addition2promt + prompt
         return prompt
+
 
     def gpt(self, content='', url_source=''):
         '''
@@ -222,12 +223,17 @@ class YaGPT:
             ]
         }
         resp = requests.post(url, headers=self.headers_yagpt, json=data)
-        test_replace = resp.text.replace('\\n', '').replace(' ', '')
-        text = json.loads(test_replace)['result']['alternatives'][0]['message']['text']
+        test_replace = resp.text.replace('\\n', '').replace('\\', '').replace('\n', '')
+        try:
+            text = json.loads(test_replace)['result']['alternatives'][0]['message']['text']
+        except:
+            return
+        text = text.replace('`', '')
         convert_data = json.loads(text)
         convert_data['link'] = url_source # Замените на нужную вам ссылку
 
-        self.result_json.append(json.dumps(convert_data, ensure_ascii=False))
+        # self.result_json.append(json.dumps(convert_data, ensure_ascii=False))
+        self.result_json.append(convert_data)
 
 # if __name__ == "__main__":
 #     with open('../report_data.json', 'r', encoding='utf-8') as f:
